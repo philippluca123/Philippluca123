@@ -1,31 +1,33 @@
 """
-galaga_generator.py  v5  — SVG cinemático Galaga, compatível GitHub
-Fixes:
-  - Nave: outer g com Y fixo, inner g com X animado (sem sumir fora do canvas)
-  - Aliens: dois g aninhados para entrada + hover sem conflito SMIL
-  - Bullets: coordenadas X absolutas, Y relativo ao SCY fixo
+galaga_generator.py  —  GIF animado estilo Galaga para GitHub README
+Gera galaga-contributions.gif via Pillow (sem dependências externas além de requests).
 """
 import os, math, random, requests
+from PIL import Image, ImageDraw
 
-USERNAME  = os.environ.get("GITHUB_USERNAME", "philippluca123")
-GH_TOKEN  = os.environ.get("GITHUB_TOKEN", "")
-OUT_FILE  = "galaga-contributions.svg"
-HEADERS   = {"Authorization": f"Bearer {GH_TOKEN}"} if GH_TOKEN else {}
+USERNAME = os.environ.get("GITHUB_USERNAME", "philippluca123")
+GH_TOKEN = os.environ.get("GITHUB_TOKEN", "")
+OUT_FILE = "galaga-contributions.gif"
+HEADERS  = {"Authorization": f"Bearer {GH_TOKEN}"} if GH_TOKEN else {}
 
-W, H       = 800, 400
-BG         = "#0a0a0f"
-GREEN      = "#39ff14"
-CYAN       = "#00ffff"
-PINK       = "#ff2d78"
-YELLOW     = "#ffe600"
-PURPLE     = "#b84fff"
-ORANGE     = "#ff8c00"
-LOOP_DUR   = 22.0
-ENTER_DUR  = 3.5
-SHOOT_GAP  = 1.1
-S          = 2        # px por pixel de arte
+# ── Canvas ─────────────────────────────────────────────────────────────────
+W, H = 720, 300
+FPS  = 12          # frames por segundo
+LOOP = 20.0        # duração do loop em segundos
+N_FRAMES = int(FPS * LOOP)
 
-# ── API ────────────────────────────────────────────────────────────────────
+# ── Palette ────────────────────────────────────────────────────────────────
+BG     = (10,  10,  15)
+GREEN  = (57,  255, 20)
+CYAN   = (0,   255, 255)
+PINK   = (255, 45,  120)
+YELLOW = (255, 230, 0)
+PURPLE = (184, 79,  255)
+ORANGE = (255, 140, 0)
+WHITE  = (255, 255, 255)
+DARK   = (20,  40,  20)
+
+# ── GitHub API ─────────────────────────────────────────────────────────────
 def fetch():
     q = """query($l:String!){user(login:$l){contributionsCollection{
       contributionCalendar{totalContributions
@@ -37,7 +39,7 @@ def fetch():
         cal = r.json()["data"]["user"]["contributionsCollection"]["contributionCalendar"]
         return cal["weeks"], cal["totalContributions"]
     except Exception as e:
-        print(f"API error: {e}"); return [], 0
+        print(f"API: {e}"); return [], 0
 
 def demo():
     rng = random.Random(7)
@@ -45,14 +47,15 @@ def demo():
             for _ in range(7)]} for _ in range(26)]
     return wks, sum(d["contributionCount"] for w in wks for d in w["contributionDays"])
 
-# ── Pixel art helpers ──────────────────────────────────────────────────────
-def px(pixels, fill, ox, oy):
-    """Gera <rect> para cada (col,row) pixel, com escala S."""
-    return "".join(
-        f'<rect x="{ox+c*S}" y="{oy+r*S}" width="{S}" height="{S}" fill="{fill}"/>'
-        for c, r in pixels)
+# ── Pixel art draw helpers ─────────────────────────────────────────────────
+S = 2  # pixel size
 
-# Alien shapes (col, row) — origem top-left local
+def draw_pixels(d, pixels, color, ox, oy):
+    for c, r in pixels:
+        x, y = ox + c*S, oy + r*S
+        d.rectangle([x, y, x+S-1, y+S-1], fill=color)
+
+# Alien shapes
 A_BODY = [(3,0),(4,0),(2,1),(3,1),(4,1),(5,1),(1,2),(2,2),(3,2),(4,2),(5,2),(6,2),
           (0,3),(1,3),(2,3),(3,3),(4,3),(5,3),(6,3),(7,3),
           (0,4),(1,4),(3,4),(4,4),(6,4),(7,4),(1,6),(2,6),(5,6),(6,6)]
@@ -64,227 +67,267 @@ C_BODY = [(2,0),(3,0),(4,0),(5,0),(1,1),(2,1),(3,1),(4,1),(5,1),(6,1),
           (0,3),(1,3),(2,3),(3,3),(4,3),(5,3),(6,3),(7,3),
           (0,4),(3,4),(4,4),(7,4),(1,5),(2,5),(5,5),(6,5)]
 C_EYES = [(2,1),(5,1)]
-AW, AH = 8, 7   # alien width/height em unidades de pixel
+AW, AH = 8, 7
 
-# Nave centrada em (0,0) — origem = centro da nave
 SHIP_PX  = [(3,0),(4,0),(2,1),(3,1),(4,1),(5,1),(1,2),(2,2),(3,2),(4,2),(5,2),(6,2),
             (0,3),(1,3),(2,3),(3,3),(4,3),(5,3),(6,3),(7,3),(1,4),(2,4),(5,4),(6,4)]
-SHIP_COK = [(3,0),(4,0)]   # cockpit amarelo
-SHIP_EXH = [(2,4),(5,4)]   # exaustão rosa
-SW, SH   = 8, 5            # nave width/height em unidades de pixel
+SHIP_COK = [(3,0),(4,0)]
+SHIP_EXH = [(2,4),(5,4)]
+SW, SH   = 8, 5
 
-def ship_art():
-    """Nave pixel centrada em (0,0). O <g> pai cuida do translate."""
-    ox = -(SW * S) // 2    # -8
-    oy = -(SH * S) // 2    # -5
-    return (px(SHIP_PX,  CYAN,   ox, oy)
-          + px(SHIP_COK, YELLOW, ox, oy)
-          + px(SHIP_EXH, PINK,   ox, oy))
-
-def alien_art(cx, cy, count, max_c):
-    """Alien centrado em (cx, cy)."""
-    ox = cx - (AW * S) // 2
-    oy = cy - (AH * S) // 2
+def draw_alien(d, cx, cy, count, max_c, flicker=False):
+    ox = cx - AW*S//2
+    oy = cy - AH*S//2
     r  = count / max_c if max_c else 0
-    if r < 0.35:
-        return px(A_BODY, PURPLE, ox, oy)
+    if flicker:
+        color, eyes = WHITE, WHITE
+    elif r < 0.35:
+        color, eyes = PURPLE, None
     elif r < 0.70:
-        return px(B_BODY, CYAN,   ox, oy)
+        color, eyes = CYAN, None
     else:
-        return px(C_BODY, GREEN, ox, oy) + px(C_EYES, CYAN, ox, oy)
+        color, eyes = GREEN, CYAN
 
-def alien_color(count, max_c):
-    r = count / max_c if max_c else 0
-    return PURPLE if r < 0.35 else (CYAN if r < 0.70 else GREEN)
+    body = A_BODY if r < 0.35 else (B_BODY if r < 0.70 else C_BODY)
+    draw_pixels(d, body, color, ox, oy)
+    if eyes and not flicker:
+        draw_pixels(d, C_EYES, eyes, ox, oy)
 
-def explosion_svg(cx, cy, t0):
-    out = []
-    for i, (col, r1) in enumerate([(YELLOW, 5), (ORANGE, 9), (PINK, 13)]):
-        t = t0 + i * 0.09
-        out.append(
-            f'<circle cx="{cx}" cy="{cy}" r="2" fill="{col}" opacity="0">'
-            f'<animate attributeName="r" values="2;{r1}" dur="0.32s" begin="{t:.2f}s" fill="freeze"/>'
-            f'<animate attributeName="opacity" values="0;1;0" keyTimes="0;0.1;1"'
-            f' dur="0.32s" begin="{t:.2f}s" fill="freeze"/></circle>')
-    return "".join(out)
+def draw_ship(d, cx, cy):
+    ox = cx - SW*S//2
+    oy = cy - SH*S//2
+    draw_pixels(d, SHIP_PX,  CYAN,   ox, oy)
+    draw_pixels(d, SHIP_COK, YELLOW, ox, oy)
+    draw_pixels(d, SHIP_EXH, PINK,   ox, oy)
 
-# ── Build SVG ──────────────────────────────────────────────────────────────
-def build(weeks, total):
+def draw_ship_mini(d, cx, cy, scale=0.6):
+    s = int(S * scale)
+    if s < 1: s = 1
+    ox = cx - int(SW*s//2)
+    oy = cy - int(SH*s//2)
+    for c, r in SHIP_PX:
+        x, y = ox+c*s, oy+r*s
+        d.rectangle([x,y,x+s-1,y+s-1], fill=CYAN)
+
+def draw_explosion(d, cx, cy, phase):
+    """phase 0..1 — explosão se expande e some."""
+    if phase > 1: return
+    rings = [(YELLOW,4), (ORANGE,8), (PINK,12)]
+    for i, (col, max_r) in enumerate(rings):
+        offset = i * 0.15
+        p = max(0, phase - offset) / (1 - offset) if (1-offset) > 0 else 0
+        r = int(max_r * p)
+        alpha = int(255 * (1 - p))
+        if r > 0 and alpha > 0:
+            col_a = col + (alpha,)
+            d.ellipse([cx-r, cy-r, cx+r, cy+r], outline=col)
+
+def draw_stars(d, stars):
+    for x, y, brightness in stars:
+        d.point((x, y), fill=(brightness, brightness, brightness))
+
+# ── Timing helpers ─────────────────────────────────────────────────────────
+ENTER_DUR = 3.5
+SHOOT_GAP = 1.0
+
+def ease_out(t):
+    """t em [0,1] → valor suavizado."""
+    return 1 - (1-t)**3
+
+def lerp(a, b, t):
+    return a + (b-a)*t
+
+def smoothstep(a, b, t):
+    t = max(0, min(1, t))
+    t = t*t*(3-2*t)
+    return lerp(a, b, t)
+
+# ── Main build ─────────────────────────────────────────────────────────────
+def build_gif(weeks, total):
     rng = random.Random(42)
 
     counts = [sum(d["contributionCount"] for d in w["contributionDays"]) for w in weeks[-20:]]
-    while len(counts) < 5:
-        counts.append(1)
+    while len(counts) < 5: counts.append(1)
     counts = counts[-20:]
     max_c  = max(counts) if any(counts) else 1
+    N      = len(counts)
+    cols   = min(N, 10)
+    pad    = 70
+    xsp    = (W - pad*2) / max(cols-1, 1)
+    ysp    = 46
+    y0     = 52
 
-    N    = len(counts)
-    cols = min(N, 10)
-    pad  = 70
-    xsp  = (W - pad * 2) / max(cols - 1, 1)
-    ysp  = 46
-    y0   = 60
-
-    pos = [(int(pad + (i % cols) * xsp), int(y0 + (i // cols) * ysp), c)
+    pos = [(int(pad + (i%cols)*xsp), int(y0 + (i//cols)*ysp), c)
            for i, c in enumerate(counts)]
 
+    SCY = H - 52   # Y fixo da nave
     SCX = W // 2
-    SCY = H - 52   # Y fixo da nave — nunca muda
 
-    def nt(t): return f"{t / LOOP_DUR:.4f}"
+    # Estrelas fixas
+    stars = [(rng.randint(4, W-4), rng.randint(30, H-30),
+              rng.randint(60, 200)) for _ in range(55)]
 
-    # ── Estrelas ───────────────────────────────────────────────────────────
-    stars = []
-    for _ in range(55):
-        x = rng.randint(4, W-4); y = rng.randint(32, H-32)
-        r = rng.choice([0.5, 0.8, 1.0])
-        o = round(rng.uniform(0.2, 0.7), 2)
-        d = round(rng.uniform(1.5, 4.0), 1)
-        stars.append(
-            f'<circle cx="{x}" cy="{y}" r="{r}" fill="white" opacity="{o}">'
-            f'<animate attributeName="opacity" values="{o};{round(o*0.2,2)};{o}"'
-            f' dur="{d}s" repeatCount="indefinite"/></circle>')
+    # Calcular posição X da nave em cada frame
+    def ship_x_at(t):
+        # Patrulha inicial
+        if t < ENTER_DUR:
+            p = t / ENTER_DUR
+            # oscila entre SCX-70 e SCX+70
+            return SCX + math.sin(p * math.pi * 2) * 70
+        # Sequência de disparos
+        for idx, (ax, ay, c) in enumerate(pos):
+            ta = ENTER_DUR + idx * SHOOT_GAP
+            tz = ta + 0.4
+            tn = ENTER_DUR + (idx+1) * SHOOT_GAP
+            if ta <= t < tz:
+                # mira no alien
+                prev_x = ship_x_at(ta - 0.01) if ta > 0.01 else SCX
+                return smoothstep(prev_x, ax, (t-ta)/0.4)
+            if tz <= t < tn:
+                return ax
+        return SCX
 
-    # ── Aliens ─────────────────────────────────────────────────────────────
-    # Estrutura por alien:
-    #   <g opacity>            ← controla fade-in e fade-out (destruição)
-    #     <g>                  ← controla entrada Y (cai do topo)
-    #       [animateTransform Y]
-    #       <g>                ← controla hover Y
-    #         [animateTransform Y hover]
-    #         [art + label]
-    #       </g>
-    #     </g>
-    #   </g>
-    alien_els = []
-    for idx, (ax, ay, c) in enumerate(pos):
-        ed   = idx * 0.11          # enter delay
-        edur = 0.50
-        hb   = ed + edur           # hover begin
-        hit  = ENTER_DUR + idx * SHOOT_GAP + 0.48
-        col  = alien_color(c, max_c)
-        art  = alien_art(ax, ay, c, max_c)
-        ly   = ay + AH * S // 2 + 10
+    # Estado dos aliens: alive, dead, exploding
+    # Para cada alien: tempo em que morre
+    alien_die_t = {idx: ENTER_DUR + idx * SHOOT_GAP + 0.48 for idx in range(N)}
 
-        alien_els.append(
-            f'<g opacity="0">'
-              f'<animate attributeName="opacity" values="0;1"'
-              f' dur="0.2s" begin="{ed:.2f}s" fill="freeze"/>'
-              f'<animate attributeName="opacity" values="1;1;0.1;1;0.1;0"'
-              f' keyTimes="0;0.5;0.62;0.74;0.86;1"'
-              f' dur="0.48s" begin="{hit:.2f}s" fill="freeze"/>'
-              f'<g>'
-                f'<animateTransform attributeName="transform" type="translate"'
-                f' values="0,{-(ay+24)};0,0"'
-                f' dur="{edur}s" begin="{ed:.2f}s" fill="freeze"'
-                f' calcMode="spline" keySplines="0.25 0 0.4 1"/>'
-                f'<g>'
-                  f'<animateTransform attributeName="transform" type="translate"'
-                  f' values="0,0;0,-4;0,0" dur="2.0s" begin="{hb:.2f}s"'
-                  f' repeatCount="indefinite"'
-                  f' calcMode="spline" keySplines="0.4 0 0.6 1;0.4 0 0.6 1"/>'
-                  + art +
-                  f'<text x="{ax}" y="{ly}" font-family="monospace" font-size="6"'
-                  f' fill="{col}" opacity="0.55" text-anchor="middle">{c}</text>'
-                f'</g>'
-              f'</g>'
-            f'</g>')
+    frames = []
+    print(f"Gerando {N_FRAMES} frames...", end="", flush=True)
 
-    # ── Nave ───────────────────────────────────────────────────────────────
-    # Outer g: posição Y FIXA em SCY — nave sempre visível no eixo Y correto
-    # Inner g: anima apenas X (patrulha e mira)
-    kx     = [SCX - 70, SCX + 70, SCX]
-    ktimes = [0.0, ENTER_DUR * 0.55, ENTER_DUR]
-    for idx, (ax, ay, c) in enumerate(pos):
-        ta = ENTER_DUR + idx * SHOOT_GAP
-        kx     += [ax, ax, ax]
-        ktimes += [ta, ta + 0.3, ta + 0.4]
-    kx.append(SCX);  ktimes.append(LOOP_DUR)
+    for fi in range(N_FRAMES):
+        t = fi / FPS   # tempo atual em segundos
 
-    kv_str = ";".join(str(x) for x in kx)
-    kt_str = ";".join(nt(t) for t in ktimes)
-    ks_str = ";".join("0.4 0 0.6 1" for _ in range(len(kx) - 1))
+        img = Image.new("RGB", (W, H), BG)
+        d   = ImageDraw.Draw(img)
 
-    ship_el = (
-        f'<g transform="translate(0,{SCY})">'          # Y fixo
-          f'<g>'                                        # X animado
-            f'<animateTransform attributeName="transform" type="translate"'
-            f' values="{kv_str}" keyTimes="{kt_str}"'
-            f' dur="{LOOP_DUR}s" repeatCount="indefinite"'
-            f' calcMode="spline" keySplines="{ks_str}"/>'
-            + ship_art() +
-          f'</g>'
-        f'</g>')
+        # Scanlines sutis
+        for sy in range(0, H, 4):
+            d.line([(0, sy+3), (W, sy+3)], fill=(0,0,0,25))
 
-    # ── Bullets ────────────────────────────────────────────────────────────
-    # Bullet sai de (ax, SCY - topo_nave) e vai até (ax, ay + base_alien)
-    bullets = []
-    for idx, (ax, ay, c) in enumerate(pos):
-        tf  = ENTER_DUR + idx * SHOOT_GAP
-        by0 = -(SH * S // 2) - 4   # relativo ao SCY (topo da nave)
-        by1 = ay + AH * S // 2     # posição absoluta do centro do alien
+        # Estrelas (piscando)
+        for sx, sy, sb in stars:
+            flicker = int(sb * (0.7 + 0.3 * math.sin(t*2.1 + sx*0.1)))
+            d.point((sx, sy), fill=(flicker, flicker, flicker))
 
-        # Bullet: g com translate Y=SCY, rect animado em Y relativo
-        bullets.append(
-            f'<g transform="translate({ax},{SCY})">'
-              f'<rect x="-1" y="{by0}" width="2" height="6" fill="{GREEN}" opacity="0">'
-              f'<animate attributeName="opacity" values="0;1;1;0"'
-              f' keyTimes="0;0.05;0.88;1" dur="0.48s" begin="{tf:.2f}s" fill="freeze"/>'
-              f'<animate attributeName="y" values="{by0};{by1 - SCY}"'
-              f' dur="0.48s" begin="{tf:.2f}s" fill="freeze"'
-              f' calcMode="spline" keySplines="0.15 0 0.3 1"/>'
-              f'</rect>'
-            f'</g>')
+        # HUD superior
+        d.line([(0,26),(W,26)], fill=DARK)
+        d.line([(0,H-26),(W,H-26)], fill=DARK)
 
-    # ── Explosões ──────────────────────────────────────────────────────────
-    expls = [explosion_svg(ax, ay, ENTER_DUR + i * SHOOT_GAP + 0.48)
-             for i, (ax, ay, c) in enumerate(pos)]
+        # Aliens
+        for idx, (ax, ay, c) in enumerate(pos):
+            die_t = alien_die_t[idx]
+            enter_t = idx * 0.11
 
-    # ── Vidas ──────────────────────────────────────────────────────────────
-    lives = "".join(
-        f'<g transform="translate({14 + i * 22},{H - 16}) scale(0.6)">{ship_art()}</g>'
-        for i in range(3))
+            if t < enter_t:
+                continue   # ainda não entrou
 
-    # ── HUD ────────────────────────────────────────────────────────────────
-    score = total * 150
-    hud = (
-        f'<text x="14" y="20" font-family="monospace" font-size="8" fill="{GREEN}">CONTRIBUTIONS INVASION</text>'
-        f'<text x="{W//2}" y="20" font-family="monospace" font-size="8" fill="{CYAN}"'
-        f' text-anchor="middle">TOTAL: {total}</text>'
-        f'<text x="{W-14}" y="20" font-family="monospace" font-size="8" fill="{YELLOW}"'
-        f' text-anchor="end">SCORE {score:07d}</text>'
-        f'<line x1="0" y1="27" x2="{W}" y2="27" stroke="{GREEN}" stroke-width="0.5" opacity="0.3"/>'
-        f'<line x1="0" y1="{H-27}" x2="{W}" y2="{H-27}" stroke="{GREEN}" stroke-width="0.5" opacity="0.3"/>'
-        f'<text x="{W//2}" y="{H-10}" font-family="monospace" font-size="6" fill="#333"'
-        f' text-anchor="middle">LAST 20 WEEKS  •  @{USERNAME}  •  WAVE 01</text>')
+            # Posição Y de entrada
+            enter_progress = min(1.0, (t - enter_t) / 0.5)
+            entry_y_off = int((1 - ease_out(enter_progress)) * -(ay + 24))
 
-    return (
-        f'<svg xmlns="http://www.w3.org/2000/svg"'
-        f' width="{W}" height="{H}" viewBox="0 0 {W} {H}"'
-        f' style="border-radius:8px;display:block;">'
-        f'<rect width="{W}" height="{H}" fill="{BG}" rx="8"/>'
-        f'<pattern id="sc" width="1" height="4" patternUnits="userSpaceOnUse">'
-        f'<rect y="3" width="{W}" height="1" fill="rgba(0,0,0,0.1)"/></pattern>'
-        f'<rect width="{W}" height="{H}" fill="url(#sc)" rx="8"/>'
-        + "".join(stars)
-        + "".join(alien_els)
-        + "".join(bullets)
-        + "".join(expls)
-        + ship_el
-        + lives
-        + hud
-        + '</svg>')
+            # Hover suave
+            hover_off = int(math.sin((t - enter_t - 0.5) * math.pi) * 3) if enter_progress >= 1 else 0
 
-# ── Main ───────────────────────────────────────────────────────────────────
+            actual_y = ay + entry_y_off + hover_off
+
+            if t >= die_t + 0.48:
+                continue  # já morreu
+
+            flicker = False
+            if die_t <= t < die_t + 0.48:
+                # Flickering antes de morrer
+                flicker = int((t - die_t) * 20) % 2 == 0
+
+            draw_alien(d, ax, actual_y, c, max_c, flicker=flicker)
+
+        # Bullets
+        for idx, (ax, ay, c) in enumerate(pos):
+            tf = ENTER_DUR + idx * SHOOT_GAP
+            if tf <= t < tf + 0.48:
+                prog = (t - tf) / 0.48
+                by0  = SCY - SH*S//2 - 4
+                by1  = ay  + AH*S//2
+                by   = int(lerp(by0, by1, ease_out(prog)))
+                d.rectangle([ax-1, by, ax+1, by+6], fill=GREEN)
+
+        # Explosões
+        for idx, (ax, ay, c) in enumerate(pos):
+            die_t = alien_die_t[idx]
+            if die_t <= t < die_t + 0.55:
+                phase = (t - die_t) / 0.55
+                draw_explosion(d, ax, ay, phase)
+
+        # Nave
+        sx = int(ship_x_at(t))
+        draw_ship(d, sx, SCY)
+
+        # Vidas
+        for li in range(3):
+            draw_ship_mini(d, 18 + li*22, H-14)
+
+        # Score / HUD text  (simples com pixels — sem fonte externa)
+        score = total * 150
+        hud_items = [
+            (10,  8, f"WAVE 01", GREEN),
+            (W//2, 8, f"TOTAL {total}", CYAN),
+            (W-10, 8, f"SCORE {score:07d}", YELLOW),
+        ]
+        # Desenha texto simples como blocos (sem truetype)
+        for tx, ty, text, col in hud_items:
+            # Usa uma fonte bitmap simples do Pillow
+            try:
+                from PIL import ImageFont
+                font = ImageFont.load_default()
+                bbox = d.textbbox((0,0), text, font=font)
+                tw = bbox[2]-bbox[0]
+                d.text((tx - tw//2 if tx > 50 else tx, ty), text, fill=col, font=font)
+            except:
+                pass
+
+        # Username footer
+        try:
+            from PIL import ImageFont
+            font = ImageFont.load_default()
+            foot = f"LAST 20 WEEKS  @{USERNAME}  WAVE 01"
+            bbox = d.textbbox((0,0), foot, font=font)
+            tw = bbox[2]-bbox[0]
+            d.text(((W-tw)//2, H-18), foot, fill=(50,50,50), font=font)
+        except:
+            pass
+
+        frames.append(img)
+        if fi % 50 == 0:
+            print(".", end="", flush=True)
+
+    print(f" {N_FRAMES} frames prontos.")
+
+    # Converte para paleta (GIF requer indexed color)
+    print("Convertendo para GIF...", end="", flush=True)
+    palette_frames = []
+    for img in frames:
+        # Quantiza para 256 cores
+        pimg = img.quantize(colors=64, method=Image.Quantize.MEDIANCUT, dither=0)
+        palette_frames.append(pimg)
+    print(" OK")
+
+    print(f"Salvando {OUT_FILE}...")
+    palette_frames[0].save(
+        OUT_FILE,
+        save_all=True,
+        append_images=palette_frames[1:],
+        duration=int(1000/FPS),   # ms por frame
+        loop=0,                   # loop infinito
+        optimize=False,
+    )
+    size_kb = os.path.getsize(OUT_FILE) // 1024
+    print(f"OK — {OUT_FILE} ({size_kb} KB)")
+
 def main():
-    print(f"Gerando Galaga SVG para @{USERNAME}...")
+    print(f"Galaga GIF para @{USERNAME}...")
     weeks, total = fetch()
     if not weeks:
         print("Modo demo."); weeks, total = demo()
-    svg = build(weeks, total)
-    with open(OUT_FILE, "w", encoding="utf-8") as f:
-        f.write(svg)
-    print(f"OK — {OUT_FILE} ({len(svg)//1024} KB) | contribuições: {total}")
+    build_gif(weeks, total)
 
 if __name__ == "__main__":
     main()
