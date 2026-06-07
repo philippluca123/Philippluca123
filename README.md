@@ -42,7 +42,7 @@
 > *Cada linha de contribuição vira um alien no campo de batalha. A nave defende o repositório.*
 > *Gerado automaticamente toda semana via GitHub Actions.*
 
-<img src="galaga-contributions.svg" alt="Galaga Contributions Game" />
+<img src="galaga-contributions.gif" alt="Galaga Contributions Game" />
 
 </div>
 
