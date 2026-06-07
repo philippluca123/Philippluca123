@@ -38,6 +38,6 @@ jobs:
         run: |
           git config --local user.email "action@github.com"
           git config --local user.name "Galaga Bot 🤖"
-          git add galaga-contributions.svg
+          git add galaga-contributions.gif
           git diff --staged --quiet || git commit -m "🎮 Update Galaga contributions [skip ci]"
           git push
