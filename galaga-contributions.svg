@@ -261,9 +261,9 @@
   <!-- HUD Top -->
   <text x="16" y="22" font-family="monospace" font-size="9" fill="#39ff14" opacity="0.8">CONTRIBUTIONS INVASION</text>
   <text x="400" y="22" font-family="monospace" font-size="9" fill="#00ffff"
-    text-anchor="middle">TOTAL: 8</text>
+    text-anchor="middle">TOTAL: 9</text>
   <text x="784" y="22" font-family="monospace" font-size="9" fill="#ffe600"
-    text-anchor="end">SCORE: 0000800</text>
+    text-anchor="end">SCORE: 0000900</text>
 
   <!-- Separator -->
   <line x1="0" y1="30" x2="800" y2="30" stroke="#39ff14" stroke-width="0.5" opacity="0.4"/>
@@ -307,7 +307,7 @@
           <rect x="1" y="-6" width="2" height="2" fill="#00ffff"/>
         </g>
           <text x="0" y="18" font-family="monospace" font-size="7" fill="#39ff1488"
-            text-anchor="middle">5</text>
+            text-anchor="middle">6</text>
         </g>
 
   <!-- Ground line -->
