@@ -56,8 +56,9 @@
 <div align="center">
 
 [![GitHub](https://img.shields.io/badge/GITHUB-philippluca123-39ff14?style=for-the-badge&logo=github&logoColor=39ff14&labelColor=0a0a0f)](https://github.com/philippluca123)
-[![LinkedIn](https://img.shields.io/badge/LINKEDIN-CONNECT-00ffff?style=for-the-badge&logo=linkedin&logoColor=00ffff&labelColor=0a0a0f)](www.linkedin.com/in/philipp-luca)
-[![Email](https://img.shields.io/badge/EMAIL-SEND_MSG-ff2d78?style=for-the-badge&logo=gmail&logoColor=ff2d78&labelColor=0a0a0f)](philippluca4401@gmail.com)
+[![LinkedIn](https://img.shields.io/badge/LINKEDIN-CONNECT-00ffff?style=for-the-badge&logo=linkedin&logoColor=00ffff&labelColor=0a0a0f)](https://www.linkedin.com/in/philipp-luca)
+[![Gmail](https://img.shields.io/badge/GMAIL-SEND_MSG-B40000?style=for-the-badge&logo=gmail&logoColor=B40000&labelColor=0a0a0f)](https://mail.google.com/mail/?view=cm&to=philippluca4401@gmail.com)
+[![Email](https://img.shields.io/badge/EMAIL-SEND_MSG-ff2d78?style=for-the-badge&logo=gmail&logoColor=ff2d78&labelColor=0a0a0f)](mailto:philippluca4401@gmail.com)
 
 ---
 <div style="width: 100%" >
