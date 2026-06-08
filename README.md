@@ -19,12 +19,12 @@
 
 ---
 
-<div align="center">
+<div align="center" style="width: 100%">
   
- <img height="210vh" src="https://github-readme-profile-alpha.vercel.app/api?username=philippluca123&theme=vision-friendly-dark&title=___________________________________________________" alt="Linguagens" />
-  <img height="210vh" src="https://github-readme-streak-stats.herokuapp.com/?user=philippluca123&theme=chartreuse-dark&fire=ac1212&sideNums=fff" />
-
+ <img  src="https://github-readme-profile-alpha.vercel.app/api?username=philippluca123&theme=vision-friendly-dark&title=___________________________________________________" alt="Linguagens" style="width: 43%; max-width: 400px; height: auto" />
+  <img src="https://github-readme-streak-stats.herokuapp.com/?user=philippluca123&theme=chartreuse-dark&fire=ac1212&sideNums=fff" style="width: 50%; max-width: 400px; height: auto" />
  <img src="https://github-profile-trophies.vercel.app/?username=philippluca123&theme=chartreuse-dark" alt="Meus Troféus" />
+</div>
 
 <div align="center" style="width: 100%;">
 <img src="https://github-readme-stats-fast.vercel.app/api/top-langs/?username=philippluca123&theme=chartreuse-dark&card_width=600" alt="Linguagens mais usadas"style="width: 49%; max-width: 400px; height: auto;"/>
@@ -34,8 +34,7 @@
 
 ---
 
-<!-- GALAGA -->
-## `// GALAGA — CONTRIBUTIONS INVASION`
+## CONTRIBUTIONS INVASION
 
 <div align="center">
 
@@ -43,38 +42,31 @@
 > *Gerado automaticamente toda semana via GitHub Actions.*
 
 <img src="galaga-contributions.gif" alt="Galaga Contributions Game" />
+<img src="alien-guide.gif" alt="Alien Guide"/>
+</div>
 
+<div align="center">
+  <a href="https://git.io/typing-svg">
+    <img src="https://readme-typing-svg.demolab.com?font=Press+Start+2P&size=10&pause=1500&color=39FF14&center=true&vCenter=true&width=600&height=80&lines=%3E+Cada+alien+%3D+uma+semana+de+commits;%3E+Aliens+roxos+%3D+poucas+contribui%C3%A7%C3%B5es;%3E+Aliens+Cianos+%3D+m%C3%A9dia+quantidade+de+contribui%C3%A7%C3%B5es;%3E+Aliens+verdes+Boss+%3D+muitos+commits" alt="Typing SVG" />
+  </a>
 </div>
 
 ---
 
-<!-- CONTACT -->
-## `// CONTACT`
-
 <div align="center">
-
-```
-╔══════════════════════════════╗
-║    FIND ME IN THE WILD       ║
-╚══════════════════════════════╝
-```
 
 [![GitHub](https://img.shields.io/badge/GITHUB-philippluca123-39ff14?style=for-the-badge&logo=github&logoColor=39ff14&labelColor=0a0a0f)](https://github.com/philippluca123)
-[![LinkedIn](https://img.shields.io/badge/LINKEDIN-CONNECT-00ffff?style=for-the-badge&logo=linkedin&logoColor=00ffff&labelColor=0a0a0f)](https://linkedin.com/in/SEU-LINKEDIN)
-[![Email](https://img.shields.io/badge/EMAIL-SEND_MSG-ff2d78?style=for-the-badge&logo=gmail&logoColor=ff2d78&labelColor=0a0a0f)](mailto:SEU@EMAIL.COM)
-
-<br/>
-
-```
-> THANKS FOR VISITING — INSERT COIN TO CONTINUE...
-```
-
-</div>
+[![LinkedIn](https://img.shields.io/badge/LINKEDIN-CONNECT-00ffff?style=for-the-badge&logo=linkedin&logoColor=00ffff&labelColor=0a0a0f)](www.linkedin.com/in/philipp-luca)
+[![Email](https://img.shields.io/badge/EMAIL-SEND_MSG-ff2d78?style=for-the-badge&logo=gmail&logoColor=ff2d78&labelColor=0a0a0f)](philippluca4401@gmail.com)
 
 ---
-
-<div align="center">
-  <sub>
-    <code>README gerado com ❤️ + estética arcade • philippluca123</code>
-  </sub>
+<div style="width: 100%" >
+<img src="https://raw.githubusercontent.com/devicons/devicon/master/icons/javascript/javascript-original.svg" style="width: 5%;"/>
+<img src="https://raw.githubusercontent.com/devicons/devicon/master/icons/html5/html5-original.svg" style="width: 5%;" />
+<img src="https://raw.githubusercontent.com/devicons/devicon/master/icons/css3/css3-original.svg" style="width: 5%;"/>
+<img src="https://raw.githubusercontent.com/devicons/devicon/master/icons/nodejs/nodejs-original.svg" style="width: 5%; "/>
+<img src="https://raw.githubusercontent.com/devicons/devicon/master/icons/react/react-original.svg"style="width: 5%;"/>
+  <img src="https://raw.githubusercontent.com/devicons/devicon/master/icons/python/python-original.svg"style="width: 5%;"/>
+  <img src="https://raw.githubusercontent.com/devicons/devicon/master/icons/git/git-original.svg"style="width: 5%;"/>
+  <img src="https://raw.githubusercontent.com/devicons/devicon/master/icons/github/github-original.svg"style="width: 5%;"/
 </div>
